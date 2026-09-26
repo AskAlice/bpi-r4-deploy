@@ -258,14 +258,18 @@ endef
 TARGET_DEVICES += bananapi_bpi-r4-poe-8gb
 
 # --- Lean NAND installer devices (no docker) — snand-img only ---
-# NAND je 128 MiB; docker (a spol.) je =m a NENÍ v těchto devices,
-# takže rootfs pro NAND je full-minus-docker. Instaluje eMMC/NVMe (HW nutnost).
+# NAND is 128 MiB. docker/tailscale are =y in the defconfig, so per-device rootfs
+# would ship them here too (~60 MiB xz) and the fit volume would eat the whole UBI,
+# leaving no LEBs for rootfs_data. The "-pkg" entries apk-del them from this rootfs only.
+BPI_R4_NAND_DROP := -docker-compose -docker -dockerd -containerd -runc \
+  -luci-app-tailscale-community -tailscale
 define Device/bananapi_bpi-r4-nand
   DEVICE_MODEL := BPi-R4 NAND installer
   DEVICE_DTS := mt7988a-bananapi-bpi-r4
   DEVICE_DTS_CONFIG := config-mt7988a-bananapi-bpi-r4
   $(call Device/bananapi_bpi-r4-common-4gb)
   ARTIFACTS := snand-img.bin
+  DEVICE_PACKAGES += $(BPI_R4_NAND_DROP)
 endef
 TARGET_DEVICES += bananapi_bpi-r4-nand
 
@@ -275,5 +279,6 @@ define Device/bananapi_bpi-r4-nand-8gb
   DEVICE_DTS_CONFIG := config-mt7988a-bananapi-bpi-r4
   $(call Device/bananapi_bpi-r4-common-8gb)
   ARTIFACTS := snand-img.bin
+  DEVICE_PACKAGES += $(BPI_R4_NAND_DROP)
 endef
 TARGET_DEVICES += bananapi_bpi-r4-nand-8gb

@@ -114,6 +114,16 @@ jobs:
           VARIANT="${{ github.event.inputs.variant }}"
           FILOGIC="openwrt/bin/targets/mediatek/filogic"
 
+          # NAND is 128 MiB: the fit volume must leave LEBs for rootfs_data (issue #39)
+          for f in "${FILOGIC}"/*-nand*-snand-img.bin; do
+            sz=$(stat -c %s "$f")
+            echo "$(basename "$f"): $((sz / 1048576)) MiB"
+            if [ "$sz" -gt $((90 * 1048576)) ]; then
+              echo "::error::$(basename "$f") is over 90 MiB; no room left for rootfs_data on NAND"
+              exit 1
+            fi
+          done
+
           # Prepare artifact directory for one release tag
           # Args: dir, itb_src, itb_dst, nvme, sdcard, emmc, snand
           make_release_dir() {

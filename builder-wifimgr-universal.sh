@@ -83,6 +83,13 @@ echo "CONFIG_LED_TRIGGER_PHY=y" >> target/linux/mediatek/filogic/config-6.12
 \cp ../my_files/arm-trusted-firmware-mediatek-Makefile package/boot/arm-trusted-firmware-mediatek/Makefile
 
 echo "CONFIG_BLK_DEV_NVME=y" >> target/linux/mediatek/filogic/config-6.12
+
+### kmod-mhi-bus forces CONFIG_MHI_BUS_DEBUG=y in the kernel. MTK's backports drop
+### MHI_BUS* from local-symbols, so mac80211 backports follows the kernel symbols,
+### builds its own drivers/bus/mhi with debugfs.o, and clashes with the stubs in its
+### internal.h ("redefinition of mhi_create_debugfs"). Keep MHI debugfs off.
+sed -i 's/CONFIG_MHI_BUS_DEBUG=y/CONFIG_MHI_BUS_DEBUG=n/' package/kernel/linux/modules/other.mk
+grep -q 'CONFIG_MHI_BUS_DEBUG=n' package/kernel/linux/modules/other.mk
 #echo "CONFIG_DYNAMIC_DEBUG=y" >> target/linux/mediatek/filogic/config-6.12
 #echo "CONFIG_DYNAMIC_DEBUG_CORE=y" >> target/linux/mediatek/filogic/config-6.12
 
