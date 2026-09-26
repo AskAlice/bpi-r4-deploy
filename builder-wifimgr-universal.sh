@@ -100,6 +100,20 @@ chmod +x files/root/install-dir/install-nand.sh
 chmod +x files/root/install-dir/install-nvme.sh
 \cp ../my_files/bpi-r4-install/install-emmc.sh files/root/install-dir/install-emmc.sh
 chmod +x files/root/install-dir/install-emmc.sh
+
+### Kernel-matched package feeds: the target kmods and mtk_openwrt_feed only exist in
+### this build's bin/ (nothing hosts them upstream), so the workflow publishes both to
+### per-build releases and the image's distfeeds are pointed there.
+if [ -n "${GITHUB_REPOSITORY:-}" ] && [ -n "${GITHUB_RUN_NUMBER:-}" ]; then
+FEED_BASE="https://github.com/${GITHUB_REPOSITORY}/releases/download"
+mkdir -p files/etc/uci-defaults
+cat > files/etc/uci-defaults/98-build-feeds <<FEEDS
+#!/bin/sh
+sed -i -e 's#^.*/mtk_openwrt_feed/packages.adb\$#${FEED_BASE}/feed-mtk-r${GITHUB_RUN_NUMBER}/packages.adb#' \\
+       -e 's#^.*/targets/mediatek/filogic/packages/packages.adb\$#${FEED_BASE}/feed-target-r${GITHUB_RUN_NUMBER}/packages.adb#' \\
+       /etc/apk/repositories.d/distfeeds.list
+FEEDS
+fi
 \cp ../my_files/bpi-r4-install/install-nvme-unifi.sh files/root/install-dir/install-nvme-unifi.sh
 chmod +x files/root/install-dir/install-nvme-unifi.sh
 #mkdir -p files/usr/sbin

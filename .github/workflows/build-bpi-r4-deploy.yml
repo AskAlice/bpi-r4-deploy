@@ -224,6 +224,32 @@ jobs:
             done
           fi
 
+      # Per-build, kernel-matched feeds (see builder: 98-build-feeds). Never
+      # overwritten, so an installed image keeps a feed matching its kernel.
+      - name: Publish mtk_openwrt_feed
+        if: github.event.inputs.variant == 'standard'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: feed-mtk-r${{ github.run_number }}
+          name: "mtk_openwrt_feed (build ${{ github.run_number }})"
+          prerelease: true
+          body: "apk feed for images from build ${{ github.run_number }} - kernel-matched, do not mix builds."
+          files: openwrt/bin/packages/aarch64_cortex-a53/mtk_openwrt_feed/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish target kmod feed
+        if: github.event.inputs.variant == 'standard'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: feed-target-r${{ github.run_number }}
+          name: "mediatek/filogic target + kmods (build ${{ github.run_number }})"
+          prerelease: true
+          body: "apk feed for images from build ${{ github.run_number }} - kernel-matched, do not mix builds."
+          files: openwrt/bin/targets/mediatek/filogic/packages/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # Atomic release: delete old releases/tags only AFTER a successful build +
       # artifact prep, so a build failure leaves the existing releases intact.
       - name: Delete existing releases and tags
