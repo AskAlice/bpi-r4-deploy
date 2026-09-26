@@ -130,6 +130,20 @@ sed -i -e 's#^.*/mtk_openwrt_feed/packages.adb\$#${FEED_BASE}/feed-mtk-r${GITHUB
 FEEDS
 fi
 \cp ../my_files/bpi-r4-install/install-nvme-unifi.sh files/root/install-dir/install-nvme-unifi.sh
+
+### Community apk feeds (fantastic-packages 25.12) + their signing key, so
+### `apk add` works for them out of the box. Key pinned from
+### https://fantastic-packages.github.io/releases/25.12/20241123170031.pub
+mkdir -p files/etc/apk/keys files/etc/apk/repositories.d
+cat > files/etc/apk/keys/fantastic-packages-20241123170031.pem <<'FPKEY'
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEP1bBDT4R1QuhUWY5qqI1FNQ0rshE
+Oh51xeVcLaZoYkUWNTBUtlTQNGsWIcFFn66cun4DFY1kLTzF8k5V140ZXg==
+-----END PUBLIC KEY-----
+FPKEY
+FP_BASE=https://fantastic-packages.github.io/releases/25.12/packages/aarch64_cortex-a53
+printf '%s\n' "$FP_BASE/luci/packages.adb" "$FP_BASE/packages/packages.adb" "$FP_BASE/special/packages.adb" \
+	> files/etc/apk/repositories.d/customfeeds.list
 chmod +x files/root/install-dir/install-nvme-unifi.sh
 #mkdir -p files/usr/sbin
 #\cp ../my_files/bpi-r4-install/boot-nvme files/usr/sbin/boot-nvme
