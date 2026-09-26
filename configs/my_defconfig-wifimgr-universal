@@ -259,6 +259,12 @@ CONFIG_PACKAGE_kmod-usb3=y
 CONFIG_PACKAGE_kmod-veth=y
 CONFIG_PACKAGE_kmod-wireguard=y
 CONFIG_PACKAGE_kmod-wwan=y
+# RM520N-GL in PCIe mode (M.2 Key-M adapter); USB mode uses qmi-wwan/option above
+CONFIG_PACKAGE_kmod-mhi-bus=y
+CONFIG_PACKAGE_kmod-mhi-pci-generic=y
+CONFIG_PACKAGE_kmod-mhi-net=y
+CONFIG_PACKAGE_kmod-mhi-wwan-ctrl=y
+CONFIG_PACKAGE_kmod-mhi-wwan-mbim=y
 CONFIG_PACKAGE_ksmbd-server=y
 CONFIG_PACKAGE_libacl=y
 CONFIG_PACKAGE_libaio=y

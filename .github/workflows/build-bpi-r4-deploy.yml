@@ -36,6 +36,14 @@ on:
         description: 'MTK SDK commit hash (leave empty to use build-versions.env)'
         required: false
         default: ''
+      runner:
+        description: 'Runner label (self-hosted = local build box)'
+        required: false
+        default: 'ubuntu-22.04'
+        type: choice
+        options:
+          - ubuntu-22.04
+          - self-hosted
 
 permissions:
   contents: write
@@ -45,7 +53,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ github.event.inputs.runner || 'ubuntu-22.04' }}
 
     steps:
       - name: Checkout repository
@@ -71,7 +79,9 @@ jobs:
             echo "RELEASE_TAGS=release-4gb-standard release-4gb-poe release-8gb-standard release-8gb-poe release-sdk" >> $GITHUB_ENV
           fi
 
+      # Destructive (uninstalls packages) - only on throwaway GitHub-hosted VMs.
       - name: Free disk space on runner
+        if: runner.environment == 'github-hosted'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: true
