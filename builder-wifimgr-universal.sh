@@ -49,11 +49,19 @@ R4_DTS_PATCH=mtk-openwrt-feeds/25.12/files/target/linux/mediatek/patches-6.12/99
 grep -q '^@@ -578,46 +467,6 @@$' "$R4_DTS_PATCH" && [ "$(tail -3 "$R4_DTS_PATCH" | head -1)" = ' &ssusb1 {' ] \
 	|| { echo "ERROR: $R4_DTS_PATCH changed - revisit the U3 force-mode fix"; exit 1; }
 sed -i 's/^@@ -578,46 +467,6 @@$/@@ -578,46 +467,11 @@/' "$R4_DTS_PATCH"
-printf '%s\n' '+' \
-	'+/* U3 T-PHY defaults to PCIe RC mode; force USB3 so ssusb1 gets its PIPE clock */' \
-	'+&{/soc/t-phy@11c50000/usb-phy@11c50700} {' \
-	'+	mediatek,force-mode;' \
-	'+};' >> "$R4_DTS_PATCH"
+# Insert before the 3 trailing context lines (&ssusb1 block): a hunk with less
+# trailing than leading context is anchored to EOF, and 172-*-enable-xsphy
+# puts &xsphy after &ssusb1, so appending after the context fails to apply.
+{
+	head -n -3 "$R4_DTS_PATCH"
+	printf '%s\n' \
+		'+/* U3 T-PHY defaults to PCIe RC mode; force USB3 so ssusb1 gets its PIPE clock */' \
+		'+&{/soc/t-phy@11c50000/usb-phy@11c50700} {' \
+		'+	mediatek,force-mode;' \
+		'+};' \
+		'+'
+	tail -n 3 "$R4_DTS_PATCH"
+} > "$R4_DTS_PATCH.new" && mv "$R4_DTS_PATCH.new" "$R4_DTS_PATCH"
 
 cd openwrt
 bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh filogic-mac80211-mt798x_rfb-wifi7_nic prepare
