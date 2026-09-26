@@ -40,6 +40,21 @@ git clone --branch main https://github.com/mediatek/mtk-openwrt-feeds mtk-openwr
 \cp -r my_files/999-wifi-01-mt7996-per-band-leds.patch mtk-openwrt-feeds/autobuild/unified/filogic/mac80211/25.12/files/package/kernel/mt76/patches/9999-w-mt7996-per-band-leds.patch
 \cp -r my_files/999-wifi-02-mt76-share-tpt-led-trigger.patch mtk-openwrt-feeds/autobuild/unified/filogic/mac80211/25.12/files/package/kernel/mt76/patches/9999-w-mt76-share-tpt-led-trigger.patch
 
+### USB: ssusb1's U3 T-PHY port defaults to PCIe RC mode, so xhci-mtk never gets
+### its USB3 PIPE clock ("clocks are not stable (0x1003d0f)", probe -110) and the
+### whole controller - M.2 Key-B modem + USB-A - is lost. mediatek,force-mode makes
+### phy-mtk-tphy force USB mode. Appended to MTK's final bpi-r4 dtsi hunk, which
+### ends on the &ssusb1 block; fails loudly if MTK changes that hunk.
+R4_DTS_PATCH=mtk-openwrt-feeds/25.12/files/target/linux/mediatek/patches-6.12/999-dts-mt7988a-bananapi-bpi-r4-01-arm64-dts-mediatek-add-bananapi-bpi-r4-support.patch
+grep -q '^@@ -578,46 +467,6 @@$' "$R4_DTS_PATCH" && [ "$(tail -3 "$R4_DTS_PATCH" | head -1)" = ' &ssusb1 {' ] \
+	|| { echo "ERROR: $R4_DTS_PATCH changed - revisit the U3 force-mode fix"; exit 1; }
+sed -i 's/^@@ -578,46 +467,6 @@$/@@ -578,46 +467,11 @@/' "$R4_DTS_PATCH"
+printf '%s\n' '+' \
+	'+/* U3 T-PHY defaults to PCIe RC mode; force USB3 so ssusb1 gets its PIPE clock */' \
+	'+&{/soc/t-phy@11c50000/usb-phy@11c50700} {' \
+	'+	mediatek,force-mode;' \
+	'+};' >> "$R4_DTS_PATCH"
+
 cd openwrt
 bash ../mtk-openwrt-feeds/autobuild/unified/autobuild.sh filogic-mac80211-mt798x_rfb-wifi7_nic prepare
 
