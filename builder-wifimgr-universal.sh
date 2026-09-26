@@ -144,6 +144,37 @@ FPKEY
 FP_BASE=https://fantastic-packages.github.io/releases/25.12/packages/aarch64_cortex-a53
 printf '%s\n' "$FP_BASE/luci/packages.adb" "$FP_BASE/packages/packages.adb" "$FP_BASE/special/packages.adb" \
 	> files/etc/apk/repositories.d/customfeeds.list
+
+### Site network: LAN 172.16.0.1/21 + alias 172.16.0.254/21; WAN DHCP on br-wan
+### (board default bridges wan + sfp-wan). Delete-then-add so re-runs after a
+### config-keeping sysupgrade never duplicate entries.
+mkdir -p files/etc/uci-defaults
+cat > files/etc/uci-defaults/97-site-network <<'SITENET'
+#!/bin/sh
+uci -q delete network.lan.ipaddr
+uci -q delete network.lan.netmask
+uci add_list network.lan.ipaddr='172.16.0.1/21'
+uci add_list network.lan.ipaddr='172.16.0.254/21'
+uci set network.wan.device='br-wan'
+uci set network.wan.proto='dhcp'
+uci set network.wan6.device='br-wan'
+uci commit network
+SITENET
+
+### Static leases + CNAMEs come from the DHCP_STATIC Actions secret (raw uci
+### 'config host' / 'config cname' sections) so they stay out of git history.
+### Replaces all host/cname sections, so it is idempotent (no x3 duplicates).
+if [ -n "${DHCP_STATIC:-}" ]; then
+	{
+		echo '#!/bin/sh'
+		echo 'while uci -q delete dhcp.@host[0]; do :; done'
+		echo 'while uci -q delete dhcp.@cname[0]; do :; done'
+		echo 'uci commit dhcp'
+		echo "cat >> /etc/config/dhcp <<'DHCPSTATIC'"
+		printf '%s\n' "$DHCP_STATIC"
+		echo 'DHCPSTATIC'
+	} > files/etc/uci-defaults/96-static-leases
+fi
 chmod +x files/root/install-dir/install-nvme-unifi.sh
 #mkdir -p files/usr/sbin
 #\cp ../my_files/bpi-r4-install/boot-nvme files/usr/sbin/boot-nvme

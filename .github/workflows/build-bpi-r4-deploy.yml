@@ -107,6 +107,7 @@ jobs:
         env:
           OPENWRT_COMMIT: ${{ env.OPENWRT_COMMIT }}
           MTK_COMMIT: ${{ env.MTK_COMMIT }}
+          DHCP_STATIC: ${{ secrets.DHCP_STATIC }}
 
       - name: Prepare release artifacts
         run: |
