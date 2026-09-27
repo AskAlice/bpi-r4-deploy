@@ -40,14 +40,17 @@ git clone --branch main https://github.com/mediatek/mtk-openwrt-feeds mtk-openwr
 \cp -r my_files/999-wifi-01-mt7996-per-band-leds.patch mtk-openwrt-feeds/autobuild/unified/filogic/mac80211/25.12/files/package/kernel/mt76/patches/9999-w-mt7996-per-band-leds.patch
 \cp -r my_files/999-wifi-02-mt76-share-tpt-led-trigger.patch mtk-openwrt-feeds/autobuild/unified/filogic/mac80211/25.12/files/package/kernel/mt76/patches/9999-w-mt76-share-tpt-led-trigger.patch
 
-### USB: ssusb1's U3 T-PHY port defaults to PCIe RC mode, so xhci-mtk never gets
-### its USB3 PIPE clock ("clocks are not stable (0x1003d0f)", probe -110) and the
-### whole controller - M.2 Key-B modem + USB-A - is lost. mediatek,force-mode makes
-### phy-mtk-tphy force USB mode. Appended to MTK's final bpi-r4 dtsi hunk, which
-### ends on the &ssusb1 block; fails loudly if MTK changes that hunk.
+### USB: ssusb1's U3 T-PHY port never delivers its PIPE clock, so xhci-mtk fails
+### "clocks are not stable (0x1003d0f)" (only STS1_U3_MAC_RST missing), probe -110,
+### and the whole controller - M.2 Key-B modem + USB-A - is lost, USB2 included.
+### mediatek,force-mode on the U3 port was tried (58aa870): debugfs showed type USB3
+### but the clock still never came. Mask the U3 port instead so xhci runs USB2-only;
+### the modem then enumerates and can be AT-switched to PCIe (pcie2 is on the xsphy,
+### not this T-PHY). Inserted into MTK's final bpi-r4 dtsi hunk, which ends on the
+### &ssusb1 block; fails loudly if MTK changes that hunk.
 R4_DTS_PATCH=mtk-openwrt-feeds/25.12/files/target/linux/mediatek/patches-6.12/999-dts-mt7988a-bananapi-bpi-r4-01-arm64-dts-mediatek-add-bananapi-bpi-r4-support.patch
 grep -q '^@@ -578,46 +467,6 @@$' "$R4_DTS_PATCH" && [ "$(tail -3 "$R4_DTS_PATCH" | head -1)" = ' &ssusb1 {' ] \
-	|| { echo "ERROR: $R4_DTS_PATCH changed - revisit the U3 force-mode fix"; exit 1; }
+	|| { echo "ERROR: $R4_DTS_PATCH changed - revisit the ssusb1 U3 mask"; exit 1; }
 sed -i 's/^@@ -578,46 +467,6 @@$/@@ -578,46 +467,11 @@/' "$R4_DTS_PATCH"
 # Insert before the 3 trailing context lines (&ssusb1 block): a hunk with less
 # trailing than leading context is anchored to EOF, and 172-*-enable-xsphy
@@ -55,9 +58,9 @@ sed -i 's/^@@ -578,46 +467,6 @@$/@@ -578,46 +467,11 @@/' "$R4_DTS_PATCH"
 {
 	head -n -3 "$R4_DTS_PATCH"
 	printf '%s\n' \
-		'+/* U3 T-PHY defaults to PCIe RC mode; force USB3 so ssusb1 gets its PIPE clock */' \
-		'+&{/soc/t-phy@11c50000/usb-phy@11c50700} {' \
-		'+	mediatek,force-mode;' \
+		'+/* U3 T-PHY port never provides a PIPE clock; run ssusb1 USB2-only */' \
+		'+&ssusb1 {' \
+		'+	mediatek,u3p-dis-msk = <0x1>;' \
 		'+};' \
 		'+'
 	tail -n 3 "$R4_DTS_PATCH"
